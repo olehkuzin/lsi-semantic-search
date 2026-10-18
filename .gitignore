@@ -1,3 +1,21 @@
+# Python
 .venv/
-__pycache__
-.idea
+venv/
+__pycache__/
+*.py[cod]
+
+# Node
+node_modules/
+frontend/build/
+
+# Generated data and models (see README, "Data")
+data/
+scripts/data.json
+
+# Local configuration
+.env
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
