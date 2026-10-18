@@ -1,94 +1,94 @@
-# 🔍 LSI Search System  
+# LSI Semantic Search
 
-A web application that enables **semantic document search** using **Latent Semantic Indexing (LSI)**. The system preprocesses text, computes **TF-IDF**, applies **Singular Value Decomposition (SVD)** for dimensionality reduction, and retrieves documents based on **cosine similarity**.  
+A web application for **semantic document search** using **Latent Semantic Indexing (LSI)**.
+Documents are preprocessed (stopword removal, WordNet lemmatization), turned into **TF-IDF**
+vectors, and reduced with **truncated SVD**. Queries are ranked by **cosine similarity** in the
+reduced space. A Flask API serves the search, and a React frontend provides the UI.
+The corpus is the BBC News articles dataset, stored in MongoDB.
 
----
+Team project for the VWM course at FIT ČVUT (Czech Technical University in Prague), 2025,
+by Oleh Kuzin and Andrii Kozlov. The written report is in
+[`docs/LSI_vector_model_report.pdf`](docs/LSI_vector_model_report.pdf).
 
-## 🚀 Features  
+## Tech stack
 
-- **Preprocessing**: Removes stopwords and applies stemming/lemmatization.  
-- **TF-IDF Computation**: Converts documents into numerical vectors.  
-- **SVD Decomposition**: Reduces dimensionality to enhance semantic search.  
-- **Cosine Similarity**: Ranks documents by relevance to the search query.  
-- **Flask API**: Handles search requests and retrieves relevant documents.  
-- **React Frontend**: Provides a user-friendly interface for searching.  
+- **Backend:** Python, Flask, flask-cors, pymongo, NLTK, scikit-learn, pandas, NumPy
+- **Database:** MongoDB (Atlas or local)
+- **Frontend:** React (Create React App)
 
----
+## Project structure
 
-## 📂 Project Structure  
-
-📁 **vwm**  
-│  
-├── 📁 **backend**  
-│   ├── `server.py`         # 🏗️ Flask backend API  
-│   ├── `db.py`            # 🍃 MongoDB database connection  
-│   ├── `preprocess.py`    # ✂️ Text preprocessing  
-│   ├── `experiment.py`     # Experiments
-│   ├── `TF-IDF.py`        # 🔢 TF-IDF computation  
-│   ├── `SVD.py`           # 🔍 Singular Value Decomposition  
-│   └── `cosineSimilarity.py` # 📐 Cosine similarity computation  
-│  
-├── 📁 **frontend**  
-│   └── 📁 **src**  
-│       ├── `pages/Home.js`  # 🔍 Search input and results display  
-│       ├── `App.js`        # ⚛️ React app configuration  
-│       ├── `pages/home.css`    # 🎨 Styling for UI
-│       └── `App.css'`      # 🎨 Styling for UI
-│  
-├── `app.py`              # 🚀 Runs both frontend & backend  
-└── `README.md`           # 📖 Project documentation  
-
-
----
-
-## 🛠 Installation & Setup  
-
-### **1️⃣ Clone the Repository**  
-```bash
-git clone git@gitlab.fit.cvut.cz:kuzinole/vwm.git
-cd vwm
+```
+backend/
+  server.py             Flask API (POST /search)
+  db.py                 MongoDB access (reads MONGO_URI from the environment)
+  preprocess.py         Text preprocessing, writes processed_content back to MongoDB
+  TF-IDF.py             Builds the TF-IDF matrix and vectorizer (data/*.pkl)
+  SVD.py                Truncated SVD of the TF-IDF matrix (data/svd_*.pkl)
+  cosineSimilarity.py   Query projection and ranking
+  experiment_k.py       Compares results for different SVD dimensions k
+frontend/               React UI (src/pages/Home.js calls http://127.0.0.1:5000/search)
+scripts/
+  transform_script.py   Converts the BBC News text files into scripts/data.json
+docs/                   Project report
+app.py                  Starts the backend and the frontend together
 ```
 
-### 2️⃣ Setup Backend (Flask)
+## Setup
+
+### 1. Configuration
+
 ```bash
-cd backend
-python -m venv venv  # Create a virtual environment
-source venv/bin/activate  # Activate virtual environment (Mac/Linux)
-venv\bin\activate  # Activate virtual environment (Windows)
-pip install -r requirements.txt  # Install dependencies
-````
-### 3️⃣ Setup Frontend (React)
+cp .env.example .env      # then fill in your MongoDB connection string
+set -a; source .env; set +a
+```
+
+`backend/db.py` reads the `MONGO_URI` environment variable and uses the database `lsi_db`,
+collection `lsi_search`.
+
+### 2. Backend
+
 ```bash
-cd ../frontend
-rm -rf node_modules package-lock.json
-npm cache clean --force
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+### 3. Frontend
+
+```bash
+cd frontend
 npm install
-npm install --save-dev eslint-config-react-app eslint@latest
-npm install eslint@^8.0.0 --save-dev
-npm install eslint-config-react-app@latest --save-dev
-npm start
-````
-### 4️⃣ Start the Project
-```bash
-cd ..
-python app.py  # Runs both backend & frontend
 ```
 
-## 🖥️ Technologies Used  
+## Data
 
-### **Backend**  
-- 🐍 **Flask** – Web framework  
-- 🍃 **MongoDB** – NoSQL database  
-- ✂ **NLTK** – Text processing  
-- 🔢 **Scikit-learn** – TF-IDF, SVD  
+**Not included:** the BBC News dataset (`data/BBC News Articles/<category>/*.txt`), the
+generated `scripts/data.json`, and the generated model pickles in `data/`. To rebuild them:
 
-### **Frontend**  
-- ⚛ **React** – UI framework  
-- 🎨 **Tailwind CSS** – Styling  
+1. Put the BBC News articles in `data/BBC News Articles/`, one folder per category.
+2. `cd scripts && python transform_script.py` creates `scripts/data.json`.
+3. Import `data.json` into MongoDB (`lsi_db.lsi_search`). The repository has no import
+   script, so use a tool such as `mongoimport --jsonArray`.
+4. From `backend/`:
+   - `python preprocess.py` stores the preprocessed text in MongoDB.
+   - `python TF-IDF.py`
+   - `python SVD.py`
+   - Run `db.save_doc_id()` once (e.g. `python -c "import db; db.save_doc_id()"`) to create `data/document_ids.pkl`.
 
-## 🤝 Contributing  
-Feel free to fork this repository and submit a pull request with improvements!  
+## Usage
 
+```bash
+python app.py
+```
 
+This starts the Flask server (port 5000) and then the React dev server (`npm start`).
 
+## Screenshots
 
+<!-- TODO: add a screenshot of the search UI -->
+
+## License
+
+[MIT](LICENSE). The BBC News dataset is not part of this repository and is not covered by
+this license.
